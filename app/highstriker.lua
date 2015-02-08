@@ -15,6 +15,7 @@ end
 
 function lcd_setup()
 	lcd = LCD:new(storm.i2c.EXT, 0x7c, storm.i2c.EXT, 0xc4)
+	cord.new(function() lcd:init(2,1) end)
 end
 
 function wait_ms(period)
@@ -45,11 +46,12 @@ function server_main()
 			print("already running the game")
 			return
 		end
-		button_press = true
+		button_press = false
 		-- call storm.net.sendto funciton to send start packet to client
-		msg = "-2"
+		local msg = "-2"
 		-- TODO: Hack, change later for ACK based handshake
 		for i = 1, 5 do
+			print("i = " .. i)
 			storm.net.sendto(ssock, msg, "ff02::1", C_PORT)
 		end
 		print("sent msg 5 times to client")
@@ -59,33 +61,52 @@ function server_main()
 end
 
 
+handling = false
 
 --- call from network handler -- NOT IN MAIN LOOP
 s_handler = function(payload, from, port)
-	print (string.format("from %s port %d: %s",from,port,payload))
-	-- check if it is an end packet
-	local num = tonumber(payload)
-	if num == -1 then
+	cord.new(function()
+		print (string.format("from %s port %d: %s",from,port,payload))
+		-- check if it is an end packet
+		if handling then
+			return
+		end
+		handling = true
 		button_press = false
-		return
-	-- if it is an end packet, flag the end signal variable and return
-	-- else Compute Score (from payload, assuming INT data type)
-	else
-		compute_score(num)
-	end
-	-- Get RGB values (map accel value to RGB value)
-	-- Display Results (look at demo) (ascii bars & color)
+		local num = tonumber(payload)
+		--if num == -1 then
+		--button_press = false
+		--	return
+		-- if it is an end packet, flag the end signal variable and return
+		-- else Compute Score (from payload, assuming INT data type)
+		--else
+		print("about to compute score..")
+		cord.new(function() compute_score(num) end)
+		--end
+		handling = false
+		-- Get RGB values (map accel value to RGB value)
+		-- Display Results (look at demo) (ascii bars & color)
+	end)
 end
 
 -- what is a minimum accel score??
 function compute_score(x)
 	print("computing score...")
-	r = math.max((-510*x)/255 + 255, 0)
-	b = math.min(510*x/255,255)
-	g = math.max(510*x/255 - 255,0)
+	local r = math.max((-510*x)/255 + 255, 0)
+	local b = math.min(510*x/255,255)
+	local g = math.max(510*x/255 - 255,0)
+	print("Made math stuff")
+	--for i=1,5 do
 	lcd:setBackColor(r,g,b)
-	lcd:init(2, 1)
-    lcd:writeString("Score: " .. x)
+	print("Printed color")
+	wait_ms(500)
+	--end
+	--for i=1,5 do
+	lcd:setCursor(0,0)
+    	lcd:writeString("Score: " .. x)
+	wait_ms(1000)
+	-- end
+	print("DONE!")
 end
 
 -------------------- Client --------------------
