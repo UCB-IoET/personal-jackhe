@@ -3,7 +3,7 @@ LCD = require "lcd"
 LED = require "led"
 Button = require "button"
 ACC = require "acc"
-shield = require "starter"
+--shield = require "starter"
 
 -- Setup Section --
 function acc_setup()
@@ -25,6 +25,8 @@ end
 C_PORT = 47772
 S_PORT = 47771
 
+button_block = true
+
 -------------------- Server --------------------
 
 -- Server Main
@@ -32,51 +34,65 @@ function server_main()
 	-- set up LCD (at I2C)
 	lcd_setup()
 	-- set up button (plugged into D6)
-	shield.Button.start()
-	btn1 = Button:new("D6")	
+	btn1 = Button:new("D6")
+	btn1:whenever("RISING",function() button_block = false end)
 	-- set up Buzzer (optional) (plugged into D2)
 	-- set up network (on 47771) i.e. set up listening socket
-	--server = function() 
-	ssock = storm.net.udpsocket(47771, s_handler)
-	running = true
+	--server = function()
+	ssock = storm.net.udpsocket(S_PORT, s_handler)
 	-- loop
-	while running do
+	while true do
 		-- wait for start button to be pressed
 		print("push button 1")
-		shield.Button.when(1, "FALLING", btn1)
+		while button_block do
+			wait_ms(10)
+		end
+		print("entered main server loop")
+		button_block = true
 		-- call storm.net.sendto funciton to send start packet to client
 		msg = "-2"
-		storm.net.sendto(C_PORT, msg, "ff02::1", 47772)
+		-- TODO: Hack, change later for ACK based handshake
+		for i = 1, 5 do
+			storm.net.sendto(ssock, msg, "ff02::1", C_PORT)
+		end
+		print("sent msg 5 times to client")
 		-- wait until you receive an end packet from the client and close the listening socket -- use a signaling variable
 		-- display the final result (do something fun)
+		running = true
+		while running do
+			wait_ms(10)
+		end
 	end
 end
 
+
+
 --- call from network handler -- NOT IN MAIN LOOP
-function s_handler(payload, from, port)
+s_handler = function(payload, from, port)
 	print (string.format("from %s port %d: %s",from,port,payload))
 	-- check if it is an end packet
-	if payload == -1 then
+	local num = tonumber(payload)
+	if num == -1 then
 		running = false
 		return
 	-- if it is an end packet, flag the end signal variable and return
 	-- else Compute Score (from payload, assuming INT data type)
 	else
-		compute_score(payload)
+		compute_score(num)
 	end
 	-- Get RGB values (map accel value to RGB value)
 	-- Display Results (look at demo) (ascii bars & color)
-	-- return
 end
 
 -- what is a minimum accel score??
 function compute_score(x)
+	print("computing score...")
 	r = math.max((-510*x)/255 + 255, 0)
 	b = math.min(510*x/255,255)
 	g = math.max(510*x/255 - 255,0)
 	lcd:setBackColor(r,g,b)
 	lcd:init(2, 1)
-    	lcd:writeString("Score: " .. x)
+    lcd:writeString("Score: " .. x)
 end
 
 -------------------- Client --------------------
@@ -93,6 +109,8 @@ end
 	-- keep track of the max every 50ms
 	-- the total time for this should be less than 2s
 	-- at 2s send the max back to server
+client_running = false
+
 function client_main()
 	acc_setup()
 	-- create client socket
@@ -100,6 +118,10 @@ function client_main()
 end
 
 function client_handler(payload, from, port)
+	if client_running then
+		return
+	end
+	client_running  = true
 	print (string.format("received from %s port %d: %s",from,port,payload))
 	local max_acc = 0
 	local period = 50
