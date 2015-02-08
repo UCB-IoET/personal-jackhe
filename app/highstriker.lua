@@ -21,6 +21,9 @@ function wait_ms(period)
 	cord.await(storm.os.invokeLater, period*storm.os.MILLISECOND)
 end
 
+C_PORT = 47772
+S_PORT = 47771
+
 -------------------- Server --------------------
 
 -- Server Main
@@ -61,7 +64,7 @@ end
 function client_main()
 	acc_setup()
 	-- create client socket
-	csock = storm.net.udpsocket(cport, client_handler)
+	csock = storm.net.udpsocket(C_PORT, client_handler)
 end
 
 function client_handler(payload, from, port)
@@ -72,20 +75,20 @@ function client_handler(payload, from, port)
 	local aax, aay, aaz, m, m_norm = 0, 0, 0, 0, 0
 	while count > 0 do
 		aax, aay, aaz = ac1:get_mg()
-		m = math.sqrt(aax^2 + aay^2 + aaz^2)
-		m_norm = m * 255 / 4000
+		print("aax = " .. aax .. " aay = " .. aay .." aaz = " .. aaz)
+		m = math.sqrt(aax^2 + aay^2 + aaz^2) - 1000 -- remove gravity
+		m_norm = m * 255 / 10000
 		max_acc = math.max(m_norm, max_acc)
+		print("max accl = " .. max_acc)
 		wait_ms(50)
 		count = count - 1
 	end
-	local arr = storm.array.create(1, storm.array.INT32)
-	arr.set(1, max_acc)
-	storm.net.sendto(csock, arr, "ff02::1", 47771)
-	print(string.format("finished measurement, max accl: %d"))
+	storm.net.sendto(csock, tostring(max_acc), "ff02::1", S_PORT)
+	print(string.format("finished measurement, max accl: %d", max_acc))
 	wait_ms(100)
-	arr.set(1, -1)
-	storm.net.sendto(csock, arr, "ff02::1", 47771)
+	storm.net.sendto(csock, "-1", "ff02::1", S_PORT)
 	print("sent end")
+	return 0
 end
 
 
