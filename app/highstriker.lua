@@ -3,6 +3,10 @@ LCD = require "lcd"
 LED = require "led"
 Button = require "button"
 ACC = require "acc"
+<<<<<<< HEAD
+=======
+--shield = require "starter"
+>>>>>>> 2a6c1f1d9d9e70e36c48fccb8098f0f016bf74e5
 
 -- Setup Section --
 function acc_setup()
@@ -46,13 +50,15 @@ function server_main()
 		while button_block do
 			wait_ms(10)
 		end
+		print("entered main server loop")
 		button_block = true
 		-- call storm.net.sendto funciton to send start packet to client
 		msg = "-2"
 		-- TODO: Hack, change later for ACK based handshake
 		for i = 1, 5 do
-			storm.net.sendto(C_PORT, msg, "ff02::1", 47772)
+			storm.net.sendto(ssock, msg, "ff02::1", C_PORT)
 		end
+		print("sent msg 5 times to client")
 		-- wait until you receive an end packet from the client and close the listening socket -- use a signaling variable
 		-- display the final result (do something fun)
 		running = true
@@ -65,7 +71,7 @@ end
 
 
 --- call from network handler -- NOT IN MAIN LOOP
-function s_handler(payload, from, port)
+s_handler = function(payload, from, port)
 	print (string.format("from %s port %d: %s",from,port,payload))
 	-- check if it is an end packet
 	local num = tonumber(payload)
@@ -83,6 +89,7 @@ end
 
 -- what is a minimum accel score??
 function compute_score(x)
+	print("computing score...")
 	r = math.max((-510*x)/255 + 255, 0)
 	b = math.min(510*x/255,255)
 	g = math.max(510*x/255 - 255,0)
@@ -105,7 +112,6 @@ end
 	-- keep track of the max every 50ms
 	-- the total time for this should be less than 2s
 	-- at 2s send the max back to server
-
 client_running = false
 
 function client_main()
@@ -142,6 +148,7 @@ client_handler = function(payload, from, port)
 	print("sent end")
 	client_running = false
 end
+
 
 --- Call either server or client main function here
 
