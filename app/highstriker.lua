@@ -112,37 +112,41 @@ function client_main()
 end
 
 client_handler = function(payload, from, port)
-	if client_running then
-		return
-	end
-	client_running  = true
-	print (string.format("received from %s port %d: %s",from,port,payload))
-	local max_acc = 0
-	local period = 50
-	local count = 2000 / 50
-	local aax, aay, aaz, m, m_norm = 0, 0, 0, 0, 0
-	while count > 0 do
-		aax, aay, aaz = ac1:get_mg()
-		print("aax = " .. aax .. " aay = " .. aay .." aaz = " .. aaz)
-		m = math.sqrt(aax^2 + aay^2 + aaz^2) - 1000 -- remove gravity
-		m_norm = m * 255 / 10000
-		max_acc = math.max(m_norm, max_acc)
-		print("max accl = " .. max_acc)
-		wait_ms(50)
-		count = count - 1
-	end
-	storm.net.sendto(csock, tostring(max_acc), "ff02::1", S_PORT)
-	print(string.format("finished measurement, max accl: %d", max_acc))
-	wait_ms(100)
-	storm.net.sendto(csock, "-1", "ff02::1", S_PORT)
-	print("sent end")
-	client_running = false
+	cord.new(function()
+		print (string.format("received from %s port %d: %s",from,port,payload))
+		if client_running then
+			print("game started")
+			return
+		end
+		client_running  = true
+		print("client start running")
+		local max_acc = 0
+		local period = 50
+		local count = 2000 / 50
+		local aax, aay, aaz, m, m_norm = 0, 0, 0, 0, 0
+		while count > 0 do
+			aax, aay, aaz = ac1:get_mg()
+			print("aax = " .. aax .. " aay = " .. aay .." aaz = " .. aaz)
+			m = math.sqrt(aax^2 + aay^2 + aaz^2) - 1000 -- remove gravity
+			m_norm = m * 255 / 6000
+			max_acc = math.max(m_norm, max_acc)
+			print("max accl = " .. max_acc)
+			wait_ms(50)
+			count = count - 1
+		end
+		for i = 1, 5 do
+			print("i = ".. i)
+			storm.net.sendto(csock, tostring(max_acc), "ff02::1", S_PORT)
+		end
+		print(string.format("finished measurement, max accl: %d", max_acc))
+		client_running = false
+	end)
 end
 
 
 --- Call either server or client main function here
 
 --- temp shell
-sh = require "stormsh"
-sh.start()
+client_main()
+
 cord.enter_loop()
