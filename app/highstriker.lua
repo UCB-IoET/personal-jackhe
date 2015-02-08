@@ -3,10 +3,6 @@ LCD = require "lcd"
 LED = require "led"
 Button = require "button"
 ACC = require "acc"
-<<<<<<< HEAD
-=======
---shield = require "starter"
->>>>>>> 2a6c1f1d9d9e70e36c48fccb8098f0f016bf74e5
 
 -- Setup Section --
 function acc_setup()
@@ -28,7 +24,7 @@ end
 C_PORT = 47772
 S_PORT = 47771
 
-button_block = true
+button_press = false
 
 -------------------- Server --------------------
 
@@ -36,22 +32,20 @@ button_block = true
 function server_main()
 	-- set up LCD (at I2C)
 	lcd_setup()
-	-- set up button (plugged into D6)
-	btn1 = Button:new("D6")
-	btn1:whenever("RISING",function() button_block = false end)
 	-- set up Buzzer (optional) (plugged into D2)
 	-- set up network (on 47771) i.e. set up listening socket
-	--server = function()
 	ssock = storm.net.udpsocket(S_PORT, s_handler)
-	-- loop
-	while true do
+	-- set up button (plugged into D6)
+	print("Server started")
+	btn1 = Button:new("D6")
+	btn1:whenever("RISING",function()
 		-- wait for start button to be pressed
-		print("push button 1")
-		while button_block do
-			wait_ms(10)
+		print("button pressed")
+		if button_press then
+			print("already running the game")
+			return
 		end
-		print("entered main server loop")
-		button_block = true
+		button_press = true
 		-- call storm.net.sendto funciton to send start packet to client
 		msg = "-2"
 		-- TODO: Hack, change later for ACK based handshake
@@ -61,11 +55,7 @@ function server_main()
 		print("sent msg 5 times to client")
 		-- wait until you receive an end packet from the client and close the listening socket -- use a signaling variable
 		-- display the final result (do something fun)
-		running = true
-		while running do
-			wait_ms(10)
-		end
-	end
+	end)
 end
 
 
@@ -76,7 +66,7 @@ s_handler = function(payload, from, port)
 	-- check if it is an end packet
 	local num = tonumber(payload)
 	if num == -1 then
-		running = false
+		button_press = false
 		return
 	-- if it is an end packet, flag the end signal variable and return
 	-- else Compute Score (from payload, assuming INT data type)
