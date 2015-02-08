@@ -3,7 +3,6 @@ LCD = require "lcd"
 LED = require "led"
 Button = require "button"
 ACC = require "acc"
-shield = require "starter"
 
 -- Setup Section --
 function acc_setup()
@@ -113,9 +112,10 @@ function client_main()
 	acc_setup()
 	-- create client socket
 	csock = storm.net.udpsocket(C_PORT, client_handler)
+	print("Started Client")
 end
 
-function client_handler(payload, from, port)
+client_handler = function(payload, from, port)
 	if client_running then
 		return
 	end
@@ -140,7 +140,7 @@ function client_handler(payload, from, port)
 	wait_ms(100)
 	storm.net.sendto(csock, "-1", "ff02::1", S_PORT)
 	print("sent end")
-	return 0
+	client_running = false
 end
 
 --- Call either server or client main function here
