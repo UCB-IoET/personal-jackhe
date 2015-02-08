@@ -18,7 +18,7 @@ function lcd_setup()
 end
 
 function wait_ms(period)
-	cord.await(storm.os.invokeLater, 500*storm.os.MILLISECOND)
+	cord.await(storm.os.invokeLater, period*storm.os.MILLISECOND)
 end
 
 -------------------- Server --------------------
@@ -65,26 +65,33 @@ function client_main()
 end
 
 function client_handler(payload, from, port)
-	red:flash(3)
-	print (string.format("echo from %s port %d: %s",from,port,payload))
+	print (string.format("received from %s port %d: %s",from,port,payload))
 	local max_acc = 0
 	local period = 50
 	local count = 2000 / 50
-	local aax, aay, aaz, m = 0, 0, 0, m
+	local aax, aay, aaz, m, m_norm = 0, 0, 0, 0, 0
 	while count > 0 do
 		aax, aay, aaz = ac1:get_mg()
-		m = sqrt(aax^2 + aay^2 + aaz^2)
+		m = math.sqrt(aax^2 + aay^2 + aaz^2)
 		m_norm = m * 255 / 4000
-		max_acc = max(m_norm, max_acc)
+		max_acc = math.max(m_norm, max_acc)
 		wait_ms(50)
+		count = count - 1
 	end
-	msg = string.format("%d", max_acc)
-	storm.net.sendto(csock, msg, "ff02::1", 47771)
+	local arr = storm.array.create(1, storm.array.INT32)
+	arr.set(1, max_acc)
+	storm.net.sendto(csock, arr, "ff02::1", 47771)
+	print(string.format("finished measurement, max accl: %d"))
 	wait_ms(100)
-	msg = "end"
-	storm.net.sendto(csock, msg, "ff02::1", 47771)
+	arr.set(1, -1)
+	storm.net.sendto(csock, arr, "ff02::1", 47771)
+	print("sent end")
 end
 
 
 --- Call either server or client main function here
+
+--- temp shell
+sh = require "stormsh"
+sh.start()
 cord.enter_loop()
