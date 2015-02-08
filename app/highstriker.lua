@@ -39,7 +39,7 @@ function s_handler(payload, from, port)
 	-- check if it is an end packet
 	-- if it is an end packet, flag the end signal variable and return
 	-- else Compute Score (from payload, assuming INT data type)
-		
+	compute_score(payload)	
 	-- Get RGB values (map accel value to RGB value)
 	-- Display Results (look at demo) (ascii bars & color)
 	-- return
