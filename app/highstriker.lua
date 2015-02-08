@@ -25,7 +25,7 @@ function server_main()
 	-- loop
 		-- wait for start button to be pressed
 		print("push button 1")
-		shield.Button.when(1, "FALLING", armButton)
+		shield.Button.when(1, "FALLING", btn1)
 		-- call storm.net.sendto funciton to send start packet to client
 		storm.net.sendto(csock, msg, "ff02::1", 47772)
 		-- wait until you receive an end packet from the client and close the listening socket -- use a signaling variable
@@ -57,6 +57,11 @@ function compute_score(result)
 end
 
 -------------------- Client --------------------
+
+function acc_setup() 
+	ac1 = ACC:new()
+	cord.new(function() ac1:init() end)
+end
 
 -- Client Main
 	-- set up accelerometer
