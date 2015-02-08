@@ -75,6 +75,12 @@ end
 	-- keep track of the max every 50ms
 	-- the total time for this should be less than 2s
 	-- at 2s send the max back to server
+client = function()
+   --local msg = string.format("0x%04x says count=%d", storm.os.nodeid(), count)
+   print("send:", msg)
+   storm.net.sendto(csock, msg, "ff02::1", 47771)  -- send upd echo to link local all nodes multicast 
+   -- count = count + 1
+end
 
 
 --- Call either server or client main function here
