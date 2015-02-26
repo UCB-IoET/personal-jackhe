@@ -8,8 +8,6 @@
 static int svcd_add_service( lua_State *L ) {
 
     //TODO: Garbage collection?
-    //Get param 1 from top of stack
-    char * svc_id = (char *) luaL_checkstring(L, 1);
 
     lua_getglobal(L, "SVCD");
 
