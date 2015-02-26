@@ -44,7 +44,7 @@ static int svcd_add_service( lua_State *L ) {
 
 // Lua: storm.n.svcd_add_attribute ( svc_id, attr_id, write_fn )
 // Add a new attribute to a service in the service daemon
-static void svcd_add_attribute( lua_State *L ) {
+static int svcd_add_attribute( lua_State *L ) {
 
     lua_getglobal(L, "SVCD"); //Index 4
 
