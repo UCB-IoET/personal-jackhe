@@ -21,23 +21,21 @@
 #define ADCIFE_SYMBOLS \
     { LSTRKEY( "adcife_init"), LFUNCVAL ( adcife_init ) }, \
     { LSTRKEY( "adcife_new"), LFUNCVAL ( adcife_new ) }, \
-    { LSTRKEY( "adcife_sample_an0"), LFUNCVAL ( adcife_sample_an0 ) },
+    { LSTRKEY( "adcife_12BIT"), LNUMVAL ( 0 ) }, \
+    { LSTRKEY( "adcife_8BIT"), LNUMVAL ( 1 ) }, \
+    { LSTRKEY( "adcife_1X"), LNUMVAL ( 0b000 ) }, \
+    { LSTRKEY( "adcife_2X"), LNUMVAL ( 0b001 ) }, \
+    { LSTRKEY( "adcife_4X"), LNUMVAL ( 0b010 ) }, \
+    { LSTRKEY( "adcife_8X"), LNUMVAL ( 0b011 ) }, \
+    { LSTRKEY( "adcife_16X"), LNUMVAL ( 0b100 ) }, \
+    { LSTRKEY( "adcife_32X"), LNUMVAL ( 0b101 ) }, \
+    { LSTRKEY( "adcife_64X"), LNUMVAL ( 0b110 ) }, \
+    { LSTRKEY( "adcife_HALFX"), LNUMVAL ( 0b111 ) }, \
+    { LSTRKEY( "adcife_ADC_REFGND"), LNUMVAL ( ANALOG_REFGND_N ) },
 
 static const LUA_REG_TYPE adc_meta_map[] =
 {
- //   { LSTRKEY( "set_type" ), LFUNCVAL ( arr_set_type ) },
-  //  { LSTRKEY( "get_type" ), LFUNCVAL ( arr_get_type ) },
-    { LSTRKEY( "get" ), LFUNCVAL ( arr_get ) },
-    { LSTRKEY( "set" ), LFUNCVAL ( arr_set ) },
-    { LSTRKEY( "get_as" ), LFUNCVAL ( arr_get_as ) },
-    { LSTRKEY( "set_as" ), LFUNCVAL ( arr_set_as ) },
-    { LSTRKEY( "__len" ), LFUNCVAL ( arr_get_length ) },
-    { LSTRKEY( "__index" ), LROVAL ( array_meta_map ) },
-    { LSTRKEY( "get_pstring" ), LFUNCVAL ( arr_get_pstring ) },
-    { LSTRKEY( "set_pstring" ), LFUNCVAL ( arr_set_pstring ) },
-    { LSTRKEY( "as_str" ), LFUNCVAL ( arr_as_str ) },
-
-
+    { LSTRKEY( "sample" ), LFUNCVAL ( adcife_sample ) },
     { LNILKEY, LNILVAL }
 };
 
@@ -85,7 +83,7 @@ void c_adcife_init()
     ADCIFE->cr.bits.bgreqen = 1;
 }
 
-int c_adcife_sample_channel(uint8_t channel, uint8_t gain, uint8_t resolution)
+int c_adcife_sample_channel(uint8_t poschan, uint8_t negchan, uint8_t gain, uint8_t resolution)
 {
     //TODO: use the channel, maybe add more parameters
 
@@ -95,13 +93,20 @@ int c_adcife_sample_channel(uint8_t channel, uint8_t gain, uint8_t resolution)
     //Clear out the struct
     seqcfg.flat = 0;
     //Set the positive channel to A0
-    seqcfg.bits.muxpos = chanmap[channel];
+    seqcfg.bits.muxpos = chanmap[poschan];
     //Enable bipolar mode, this seems to drastically reduce noise
     seqcfg.bits.bipolar = 1;
-    //Enable the internal voltage source for the negative reference
-    seqcfg.bits.internal = 0b10;
-    //Set the negative reference to ground
-    seqcfg.bits.muxneg = 0b011;
+    if (negchan == (ANALOG_REFGND_N - 13)) {
+        //Enable the internal voltage source for the negative reference
+        seqcfg.bits.internal = 0b10;
+        //Set the negative reference to ground
+        seqcfg.bits.muxneg = 0b011;
+    } else {
+        //Enable the internal voltage source for the negative reference
+        seqcfg.bits.internal = 0b00;
+        //Set the negative reference to ground
+        seqcfg.bits.muxneg = chanmap[negchan];
+    }
     //Set the gain
     seqcfg.bits.gain = (gain << 5) >> 5;
     //Set the resolution
@@ -118,21 +123,34 @@ int c_adcife_sample_channel(uint8_t channel, uint8_t gain, uint8_t resolution)
 int adcife_init(lua_State *L)
 {
     c_adcife_init();
-    return 0;
+    return 1;
 }
 
-int adcife_sample_an0(lua_State *L)
+int adcife_sample(lua_State *L)
 {
     //TODO: turn this into a metamethod on a table, look in stormarray.c for examples
-    int sample = c_adcife_sample_channel(0);
+    storm_adc_t *adc = lua_touserdata(L, 1);
+    int sample = c_adcife_sample_channel(adc->poschan, adc->negchan, adc->gain, adc->resolution);
     lua_pushnumber(L, sample);
     return 1;
 }
 
 //Lua: storm.n.adcife_new(poschan, negchan, gain, resolution)
+//Poschan should be a value from storm.io.AX
+//Negchan should be a value from storm.io.AX or storm.n.adcife_ADC_REFGND
+//Gain should be a value from storm.n.adcife_nX
+//Resolution should be a value from storm.n.adcife_12BIT or storm.n.adcife_8BIT
 int adcife_new(lua_State *L)
 {
     //TODO: make this construct a table with a rotable metatable and return it
     //see stormarray for examples.
-    return 0;
+    storm_adc_t *adc = lua_newuserdata(L, sizeof(storm_adc_t));
+    adc->poschan = ((uint8_t) luaL_checkinteger(L, 1)) - 13;
+    adc->negchan = ((uint8_t) luaL_checkinteger(L, 2)) - 13;
+    adc->gain = (uint8_t) luaL_checkinteger(L, 3);
+    adc->resolution = (uint8_t) luaL_checkinteger(L, 4);
+    lua_pushrotable(L, (void*)adc_meta_map);
+    lua_setmetatable(L, -2);
+    printf("Created adc at address 0x%p\n", adc);
+    return 1;
 }
