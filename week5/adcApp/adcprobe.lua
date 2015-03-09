@@ -6,12 +6,12 @@ require "svcd"
 storm.n.adcife_init()
 
 channels = {
-    "A0" = storm.n.adcife_new(storm.io.A0, storm.n.adcife_ADC_REFGND, storm.n.adcife_1X, storm.n.adcife_12BIT),
-    "A1" = storm.n.adcife_new(storm.io.A1, storm.n.adcife_ADC_REFGND, storm.n.adcife_1X, storm.n.adcife_12BIT),
-    "A2" = storm.n.adcife_new(storm.io.A2, storm.n.adcife_ADC_REFGND, storm.n.adcife_1X, storm.n.adcife_12BIT),
-    "A3" = storm.n.adcife_new(storm.io.A3, storm.n.adcife_ADC_REFGND, storm.n.adcife_1X, storm.n.adcife_12BIT),
-    "A4" = storm.n.adcife_new(storm.io.A4, storm.n.adcife_ADC_REFGND, storm.n.adcife_1X, storm.n.adcife_12BIT),
-    "A5" = storm.n.adcife_new(storm.io.A5, storm.n.adcife_ADC_REFGND, storm.n.adcife_1X, storm.n.adcife_12BIT),
+    [1] = storm.n.adcife_new(storm.io.A0, storm.n.adcife_ADC_REFGND, storm.n.adcife_1X, storm.n.adcife_12BIT),
+    [2] = storm.n.adcife_new(storm.io.A1, storm.n.adcife_ADC_REFGND, storm.n.adcife_1X, storm.n.adcife_12BIT),
+    [3] = storm.n.adcife_new(storm.io.A2, storm.n.adcife_ADC_REFGND, storm.n.adcife_1X, storm.n.adcife_12BIT),
+    [4] = storm.n.adcife_new(storm.io.A3, storm.n.adcife_ADC_REFGND, storm.n.adcife_1X, storm.n.adcife_12BIT),
+    [5] = storm.n.adcife_new(storm.io.A4, storm.n.adcife_ADC_REFGND, storm.n.adcife_1X, storm.n.adcife_12BIT),
+    [6] = storm.n.adcife_new(storm.io.A5, storm.n.adcife_ADC_REFGND, storm.n.adcife_1X, storm.n.adcife_12BIT)
 }
 
 MOTDs = {"Default message!!" }
@@ -23,8 +23,8 @@ SVCD.init("adcprobe", function()
     SVCD.add_attribute(0x3003, 0x4005, function(pay, srcip, srcport)
         local ps = storm.array.fromstr(pay)
         local adcch = ps:get(1)
-        print ("got a request to measure adc",adcch)
-        local value_mv = (channels[adcch]:sample() - 2047) * 3300 / 2047
+        print ("got a request to measure adc ",adcch+1)
+        local value_mv = (channels[adcch+1]:sample() - 2047) * 3300 / 2047
         local val = storm.array.create(1, storm.array.INT32)
         val:set(1, value_mv)
         SVCD.notify(0x3003, 0x4010, val:as_str())
