@@ -96,7 +96,7 @@ int c_adcife_sample_channel(uint8_t poschan, uint8_t negchan, uint8_t gain, uint
     seqcfg.bits.muxpos = chanmap[poschan];
     //Enable bipolar mode, this seems to drastically reduce noise
     seqcfg.bits.bipolar = 1;
-    if (negchan == (ANALOG_REFGND_N - 13)) {
+    if (negchan == (ANALOG_REFGND_N - 14)) {
         //Enable the internal voltage source for the negative reference
         seqcfg.bits.internal = 0b10;
         //Set the negative reference to ground
@@ -131,6 +131,7 @@ int adcife_sample(lua_State *L)
     //TODO: turn this into a metamethod on a table, look in stormarray.c for examples
     storm_adc_t *adc = lua_touserdata(L, 1);
     int sample = c_adcife_sample_channel(adc->poschan, adc->negchan, adc->gain, adc->resolution);
+    sample = (sample << 16) >> 16;
     lua_pushnumber(L, sample);
     return 1;
 }
@@ -145,12 +146,13 @@ int adcife_new(lua_State *L)
     //TODO: make this construct a table with a rotable metatable and return it
     //see stormarray for examples.
     storm_adc_t *adc = lua_newuserdata(L, sizeof(storm_adc_t));
-    adc->poschan = ((uint8_t) luaL_checkinteger(L, 1)) - 13;
-    adc->negchan = ((uint8_t) luaL_checkinteger(L, 2)) - 13;
+    adc->poschan = ((uint8_t) luaL_checkinteger(L, 1)) - 14;
+    adc->negchan = ((uint8_t) luaL_checkinteger(L, 2)) - 14;
     adc->gain = (uint8_t) luaL_checkinteger(L, 3);
     adc->resolution = (uint8_t) luaL_checkinteger(L, 4);
+    printf("Creating ADC channel at %d, w.r.t %d, at %dX, at %d bit\n", 
+        adc->poschan, adc->negchan, adc->gain, adc->resolution);
     lua_pushrotable(L, (void*)adc_meta_map);
     lua_setmetatable(L, -2);
-    printf("Created adc at address 0x%p\n", adc);
     return 1;
 }
