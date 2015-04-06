@@ -30,6 +30,26 @@ stop_oscilate = function()
     storm.os.cancel(task)
 end
 
+init_adc = function ()
+    storm.n.adcife_init()
+end
+
+init_a0 = function()
+    return storm.n.adcife_new(storm.io.A0, storm.n.adcife_ADC_REFGND, storm.n.adcife_1X, storm.n.adcife_12BIT)
+end
+
+measure = function(adc)
+    return (adc:sample() - 2047) * 3300 / 2047
+end
+
+contMeasure = function(adc)
+    cord.new(function()
+        while(run) do
+        
+        end
+    end)
+end
+
 -- start a coroutine that provides a REPL
 sh.start()
 

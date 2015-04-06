@@ -36,6 +36,7 @@
 static const LUA_REG_TYPE adc_meta_map[] =
 {
     { LSTRKEY( "sample" ), LFUNCVAL ( adcife_sample ) },
+    { LSTRKEY( "__index" ), LROVAL ( adc_meta_map ) },
     { LNILKEY, LNILVAL }
 };
 
@@ -150,8 +151,6 @@ int adcife_new(lua_State *L)
     adc->negchan = ((uint8_t) luaL_checkinteger(L, 2)) - 14;
     adc->gain = (uint8_t) luaL_checkinteger(L, 3);
     adc->resolution = (uint8_t) luaL_checkinteger(L, 4);
-    printf("Creating ADC channel at %d, w.r.t %d, at %dX, at %d bit\n", 
-        adc->poschan, adc->negchan, adc->gain, adc->resolution);
     lua_pushrotable(L, (void*)adc_meta_map);
     lua_setmetatable(L, -2);
     return 1;
